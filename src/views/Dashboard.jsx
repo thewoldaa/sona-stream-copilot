@@ -70,6 +70,25 @@ export default function Dashboard({ sona, onCommand }) {
           <button className="ghost" onClick={() => act('TriggerStudioModeTransition')} disabled={!connected} type="button">
             transisi
           </button>
+          <button
+            className="ghost"
+            onClick={() => act(snapshot?.replayBuffer ? 'StopReplayBuffer' : 'StartReplayBuffer')}
+            disabled={!connected}
+            type="button"
+          >
+            {snapshot?.replayBuffer ? 'stop replay' : 'replay buffer'}
+          </button>
+          <button
+            className="ghost"
+            onClick={() => act(snapshot?.virtualCam ? 'StopVirtualCam' : 'StartVirtualCam')}
+            disabled={!connected}
+            type="button"
+          >
+            {snapshot?.virtualCam ? 'stop vcam' : 'virtual cam'}
+          </button>
+          <button className="ghost" onClick={sona.undo} disabled={!connected || !sona.status?.undoDepth} type="button">
+            undo{sona.status?.undoDepth ? ` (${sona.status.undoDepth})` : ''}
+          </button>
         </div>
       </section>
 

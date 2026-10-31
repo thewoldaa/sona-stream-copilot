@@ -1,0 +1,38 @@
+appId: org.sona.copilot
+productName: Sona
+copyright: Copyright © 2026 Sona Contributors
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - electron/**
+  - dist/**
+  - package.json
+
+asar: true
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: ${productName}-${version}-${arch}-${ext}
+  publisherName: Sona Contributors
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Sona
+  deleteAppDataOnUninstall: false
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+
+publish: null

@@ -1,0 +1,29 @@
+{
+  "name": "sona-stream-copilot",
+  "productName": "Sona",
+  "version": "1.0.0",
+  "description": "Sona — free, local-first AI copilot for streamers. OBS control, voice commands, zero vendor backend.",
+  "author": "Sona Contributors",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "electron .",
+    "run": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "obs-websocket-js": "^5.0.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "41.3.0",
+    "electron-builder": "^25.1.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.11"
+  }
+}

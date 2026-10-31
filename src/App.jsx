@@ -8,6 +8,7 @@ import ObsPanel from './views/ObsPanel.jsx'
 import ChatPanel from './views/ChatPanel.jsx'
 import Designer from './views/Designer.jsx'
 import Music from './views/Music.jsx'
+import Automations from './views/Automations.jsx'
 import Settings from './views/Settings.jsx'
 import Onboarding from './views/Onboarding.jsx'
 import { MusicDeck } from './lib/musicDeck.jsx'
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'chat', label: 'Chat', hint: 'Moderasi & interaksi' },
   { id: 'overlay', label: 'Overlay', hint: 'Designer & browser source' },
   { id: 'music', label: 'Musik', hint: 'Antrean & output device' },
+  { id: 'automations', label: 'Automations', hint: 'Routine, pengingat, catatan' },
   { id: 'settings', label: 'Setelan', hint: 'Model, suara, hotkey' }
 ]
 
@@ -233,6 +235,7 @@ export default function App() {
           {tab === 'chat' && <ChatPanel sona={sona} />}
           {tab === 'overlay' && <Designer sona={sona} />}
           {tab === 'music' && <Music sona={sona} />}
+          {tab === 'automations' && <Automations sona={sona} />}
           {tab === 'settings' && <Settings sona={sona} />}
         </div>
       </main>

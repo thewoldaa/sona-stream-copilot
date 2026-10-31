@@ -50,7 +50,8 @@ contextBridge.exposeInMainWorld('sona', {
   },
   ai: {
     command: (text, history) => ipcRenderer.invoke('ai:command', { text, history }),
-    test: () => ipcRenderer.invoke('ai:test')
+    test: () => ipcRenderer.invoke('ai:test'),
+    previewPrompt: (mode) => ipcRenderer.invoke('prompts:preview', mode)
   },
   stt: {
     transcribe: (buffer, mime) => ipcRenderer.invoke('stt:transcribe', { buffer, mime })
@@ -114,6 +115,18 @@ contextBridge.exposeInMainWorld('sona', {
     expand: (expanded) => ipcRenderer.invoke('notch:expand', expanded),
     visibility: (visible) => ipcRenderer.invoke('notch:visibility', visible),
     action: (type, payload) => ipcRenderer.invoke('notch:action', { type, ...(payload ?? {}) })
+  },
+  automations: {
+    state: () => ipcRenderer.invoke('automations:state'),
+    run: (name) => ipcRenderer.invoke('automations:run', name),
+    saveRoutine: (routine) => ipcRenderer.invoke('automations:saveRoutine', routine),
+    removeRoutine: (id) => ipcRenderer.invoke('automations:removeRoutine', id),
+    addReminder: (text, minutes) => ipcRenderer.invoke('automations:addReminder', { text, minutes }),
+    removeReminder: (id) => ipcRenderer.invoke('automations:removeReminder', id),
+    saveMessage: (text, label) => ipcRenderer.invoke('automations:saveMessage', { text, label }),
+    sendSaved: (label) => ipcRenderer.invoke('automations:sendSaved', label),
+    removeMessage: (id) => ipcRenderer.invoke('automations:removeMessage', id),
+    saveNotes: (text) => ipcRenderer.invoke('automations:saveNotes', text)
   },
   on: (channel, handler) => {
     if (!EVENTS.has(channel)) return () => {}

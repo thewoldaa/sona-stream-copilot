@@ -901,6 +901,42 @@ tool('music_volume', 'Set local music volume, 0-100.', { percent: N('0-100') }, 
 
 tool('music_queue', 'Read the music queue and what is playing.', {}, [], async ({ music }) => (music ? ok(music.state()) : fail('music_unavailable')))
 
+/* --------------------------- routines & reminders ------------------------- */
+
+tool('run_routine', 'Run a saved routine by name. Routines are ordered tool calls the streamer set up.', { name: S('Routine name.') }, ['name'], async ({ automations, args }) =>
+  automations ? automations.runRoutine(args.name) : fail('automations_unavailable')
+)
+
+tool('list_routines', 'List saved routines and reminders.', {}, [], async ({ automations }) =>
+  automations
+    ? ok({
+        routines: automations.routines().map((r) => ({ name: r.name, trigger: r.trigger, steps: r.steps?.length ?? 0, enabled: r.enabled !== false })),
+        reminders: automations.reminders().filter((r) => !r.done)
+      })
+    : fail('automations_unavailable')
+)
+
+tool(
+  'add_reminder',
+  'Set a one-shot reminder that lands in chat (and as an overlay alert) after N minutes.',
+  { text: S('What to remind.'), minutes: N('Minutes from now.') },
+  ['text', 'minutes'],
+  async ({ automations, args }) => (automations ? automations.addReminder(args.text, args.minutes) : fail('automations_unavailable'))
+)
+
+tool('send_saved_message', 'Post a saved chat message by its label.', { label: S('Label of the saved message.') }, ['label'], async ({ automations, args }) =>
+  automations ? automations.sendSaved(args.label) : fail('automations_unavailable')
+)
+
+tool('save_note', 'Append a line to the streamer\'s local notes.', { text: S('Note text.') }, ['text'], async ({ automations, args }) => {
+  if (!automations) return fail('automations_unavailable')
+  const previous = automations.notes()
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ')
+  const next = `${previous}${previous ? '\n' : ''}- [${stamp}] ${args.text}`
+  automations.saveNotes(next)
+  return ok({ saved: true })
+})
+
 /* --------------------------- raw protocol escape -------------------------- */
 
 const RAW_PREFIXES = /^(Get|Set|Create|Remove|Duplicate|Trigger|Start|Stop|Toggle|Pause|Resume|Save|Send|Press|Open|Suspend|Sleep|Restart|Split)/

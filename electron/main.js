@@ -9,10 +9,12 @@ const store = require('./settings')
 const secrets = require('./secrets')
 const { ObsManager, RENDERER_OBS_ALLOWED } = require('./obs')
 const { runCommand, complete } = require('./agent')
+const { buildSystemPrompt } = require('./prompts')
 const { ChatService } = require('./chat')
 const { OverlayServer } = require('./overlay')
 const { MusicService } = require('./music')
 const { Notch } = require('./notch')
+const { Automations } = require('./automations')
 
 const DEV_URL = process.env.SONA_DEV_URL || ''
 let win = null
@@ -44,12 +46,25 @@ protocol.registerSchemesAsPrivileged([
 
 const obs = new ObsManager(emit)
 
+const automations = new Automations({
+  getSettings: () => store.get(),
+  save: (patch) => store.save({ automations: { ...store.get().automations, ...patch } }),
+  context: () => ({ obs, chat, overlay, music, automations }),
+  emit
+})
+
 const chat = new ChatService({
   emit,
   getSettings: () => store.get(),
   saveChat: (patch) => store.save({ chat: { ...store.get().chat, ...patch } }),
   getObs: () => obs,
-  aiComplete: ({ system, user }) => complete(store.get().ai, { system, user })
+  aiComplete: ({ user }) =>
+    complete(store.get().ai, {
+      system: buildSystemPrompt({ settings: store.get(), mode: 'chatReply' }),
+      user
+    }),
+  aiJudge: ({ system, user }) => complete(store.get().ai, { system, user, temperature: 0, maxTokens: 8 }),
+  onMessage: (message) => automations.matchChat(message.text, message.user)
 })
 
 const overlay = new OverlayServer({
@@ -66,8 +81,9 @@ const music = new MusicService({
   emit
 })
 
-const notch = new Notch({
-  getSettings: () => store.get(),
+automations.attach({ chat, overlay })
+
+const notch = new Notch({  getSettings: () => store.get(),
   save: (patch) => store.save({ notch: { ...store.get().notch, ...patch } }),
   getObs: () => obs,
   getChat: () => chat,
@@ -303,6 +319,7 @@ app.whenReady().then(async () => {
     chat.connect({ channel: cfg.chat.channel, username: cfg.chat.username, token: secrets.get('twitchToken') })
   }
   chat.armTimers()
+  automations.start()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -370,11 +387,17 @@ ipcMain.handle('obs:call', async (_e, payload) => {
 ipcMain.handle('ai:command', async (_e, payload) => {
   const text = String(payload?.text ?? '').trim()
   if (!text) return { ok: false, error: 'empty_command' }
+  const settings = store.get()
+  const system = buildSystemPrompt({
+    settings: { ...settings, __obsSnapshot: obs.snapshot },
+    mode: 'reply'
+  })
   try {
     const result = await runCommand({
       obs,
-      context: { chat, overlay, music },
-      cfg: store.get().ai,
+      context: { chat, overlay, music, automations },
+      cfg: settings.ai,
+      system,
       text,
       history: Array.isArray(payload?.history) ? payload.history : [],
       onStep: (step) => emit('ai:step', step)
@@ -385,8 +408,14 @@ ipcMain.handle('ai:command', async (_e, payload) => {
   }
 })
 
-ipcMain.handle('ai:test', async () => {
-  const cfg = store.get().ai
+ipcMain.handle('prompts:preview', (_e, mode) =>
+  buildSystemPrompt({
+    settings: { ...store.get(), __obsSnapshot: obs.snapshot },
+    mode: mode || 'reply'
+  })
+)
+
+ipcMain.handle('ai:test', async () => {  const cfg = store.get().ai
   const base = String(cfg.baseUrl || '').replace(/\/+$/, '')
   if (!base) return { ok: false, error: 'base_url_empty' }
   try {
@@ -518,6 +547,25 @@ ipcMain.handle('music:clear', () => music.clear())
 ipcMain.handle('music:remove', (_e, id) => music.remove(id))
 ipcMain.handle('music:ended', () => music.next())
 ipcMain.handle('music:setPlaying', (_e, value) => music.setPlaying(value))
+
+/* ------------------------------- automations ---------------------------- */
+
+ipcMain.handle('automations:state', () => ({
+  routines: automations.routines(),
+  reminders: automations.reminders(),
+  savedMessages: automations.savedMessages(),
+  notes: automations.notes()
+}))
+
+ipcMain.handle('automations:run', (_e, name) => automations.runRoutine(name))
+ipcMain.handle('automations:saveRoutine', (_e, routine) => automations.saveRoutine(routine ?? {}))
+ipcMain.handle('automations:removeRoutine', (_e, id) => automations.removeRoutine(id))
+ipcMain.handle('automations:addReminder', (_e, payload) => automations.addReminder(payload?.text, payload?.minutes))
+ipcMain.handle('automations:removeReminder', (_e, id) => automations.removeReminder(id))
+ipcMain.handle('automations:saveMessage', (_e, payload) => automations.saveMessage(payload?.text, payload?.label))
+ipcMain.handle('automations:sendSaved', (_e, label) => automations.sendSaved(label))
+ipcMain.handle('automations:removeMessage', (_e, id) => automations.removeMessage(id))
+ipcMain.handle('automations:saveNotes', (_e, text) => automations.saveNotes(text))
 
 /* -------------------------------- onboarding ---------------------------- */
 

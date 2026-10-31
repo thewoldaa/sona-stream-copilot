@@ -5,6 +5,7 @@ export default function Settings({ sona }) {
   const [models, setModels] = useState(null)
   const [testing, setTesting] = useState(false)
   const [secretsForm, setSecretsForm] = useState({ obsPassword: '', aiKey: '', sttKey: '', twitchToken: '' })
+  const [promptPreview, setPromptPreview] = useState(null)
 
   useEffect(() => {
     if (sona.settings) setLocal(sona.settings)
@@ -67,16 +68,75 @@ export default function Settings({ sona }) {
               />
             </label>
           </div>
+          <div className="form-row">
+            <label>
+              <span>Kepribadian</span>
+              <select value={local.ai.personality ?? 'pro'} onChange={(e) => patch('ai', 'personality', e.target.value)}>
+                <option value="pro">pro — tenang, teknis</option>
+                <option value="hype">hype — energik, suportif</option>
+                <option value="deadpan">deadpan — datar, kering</option>
+              </select>
+            </label>
+            <label>
+              <span>Panjang jawaban</span>
+              <select value={local.ai.replyLength ?? 'short'} onChange={(e) => patch('ai', 'replyLength', e.target.value)}>
+                <option value="short">pendek</option>
+                <option value="normal">normal</option>
+                <option value="detailed">detail</option>
+              </select>
+            </label>
+            <label>
+              <span>Humor</span>
+              <select value={local.ai.humor ?? 1} onChange={(e) => patch('ai', 'humor', Number(e.target.value))}>
+                <option value={0}>tanpa joke</option>
+                <option value={1}>sesekali</option>
+                <option value={2}>sering</option>
+              </select>
+            </label>
+            <label>
+              <span>Bahasa</span>
+              <select value={local.ai.language ?? 'id'} onChange={(e) => patch('ai', 'language', e.target.value)}>
+                <option value="id">Indonesia</option>
+                <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="ru">Русский</option>
+              </select>
+            </label>
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={Boolean(local.ai.proactive)} onChange={(e) => patch('ai', 'proactive', e.target.checked)} />
+            <span>Boleh bicara sendiri kalau ada yang penting</span>
+          </label>
           <label>
-            <span>System prompt</span>
-            <textarea rows="4" value={local.ai.systemPrompt} onChange={(e) => patch('ai', 'systemPrompt', e.target.value)} />
+            <span>Instruksi tambahan (menang atas gaya, kalah dari batas)</span>
+            <textarea rows="4" value={local.ai.systemPrompt ?? ''} onChange={(e) => patch('ai', 'systemPrompt', e.target.value)} placeholder="mis. panggil aku bos, jangan pernah bilang 'tentu saja'" />
           </label>
           <div className="row">
             <button type="button" className="ghost" onClick={testModel} disabled={testing}>
               {testing ? 'menguji…' : 'tes koneksi'}
             </button>
+            <button
+              type="button"
+              className="ghost"
+              onClick={async () => {
+                const text = await window.sona.ai.previewPrompt('reply')
+                setPromptPreview(text)
+              }}
+            >
+              lihat system prompt
+            </button>
             {models && <span className="muted tiny">{models.slice(0, 6).join(' · ')}</span>}
           </div>
+          {promptPreview && (
+            <div className="prompt-preview">
+              <div className="row row--end">
+                <button type="button" className="ghost tiny-btn" onClick={() => setPromptPreview(null)}>
+                  tutup
+                </button>
+              </div>
+              <pre>{promptPreview}</pre>
+            </div>
+          )}
         </div>
       </section>
 

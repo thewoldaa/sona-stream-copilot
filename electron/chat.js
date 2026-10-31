@@ -42,6 +42,8 @@ class ChatService {
   #saveChat
   #getObs
   #ai
+  #judge
+  #onChatMessage
   #recent = []
   #seen = new Set()
   #poll = null
@@ -52,12 +54,14 @@ class ChatService {
   #reconnectDelay = 2000
   #stopping = false
 
-  constructor({ emit, getSettings, saveChat, getObs, aiComplete }) {
+  constructor({ emit, getSettings, saveChat, getObs, aiComplete, aiJudge, onMessage }) {
     this.#emit = emit ?? (() => {})
     this.#getSettings = getSettings
     this.#saveChat = saveChat ?? (() => {})
     this.#getObs = getObs
     this.#ai = aiComplete
+    this.#judge = aiJudge ?? aiComplete
+    this.#onChatMessage = onMessage ?? null
     this.connected = false
     this.channel = ''
     this.username = ''
@@ -203,6 +207,11 @@ class ChatService {
     this.#recent.push(message)
     if (this.#recent.length > MAX_RECENT) this.#recent.shift()
     this.#emit('chat:message', message)
+    try {
+      this.#onChatMessage?.(message)
+    } catch {
+      /* automations must never break chat */
+    }
 
     const verdict = this.classify(message)
     if (verdict && verdict.action !== 'none') {
@@ -265,8 +274,8 @@ class ChatService {
     this.#emit('chat:flag', { message, reason: verdict.reason, stage: 'ai-check' })
     try {
       const answer = await Promise.race([
-        this.#ai({
-          system: this.settings.moderation.aiModelHint || 'Answer with DELETE or HOLD only.',
+        this.#judge({
+          system: 'You are a chat moderation classifier. Reply with exactly DELETE or HOLD.',
           user: `Pesan: "${message.text}" (pelanggaran terdeteksi: ${verdict.reason}). Hapus atau biarkan? Jawab DELETE atau HOLD.`
         }),
         new Promise((resolve) => setTimeout(() => resolve('HOLD'), 4000))
@@ -278,7 +287,8 @@ class ChatService {
     this.#applyModeration(message, verdict)
   }
 
-  #applyModeration(message, verdict) {    const mod = this.settings.moderation
+  #applyModeration(message, verdict) {
+    const mod = this.settings.moderation
     this.#emit('chat:flag', { message, reason: verdict.reason })
     if (!this.settings.hasToken) return
     if (verdict.action === 'delete') this.send(`.delete ${message.id}`)

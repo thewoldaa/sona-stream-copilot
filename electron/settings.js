@@ -17,11 +17,12 @@ const DEFAULTS = {
     model: 'llama3.1',
     apiKey: '',
     temperature: 0.4,
-    systemPrompt:
-      'You are Sona, a calm and competent AI co-pilot for a live streamer. ' +
-      'You control OBS Studio through tools and you moderate a Twitch chat. ' +
-      'Keep spoken answers to one or two short sentences. ' +
-      'Never invent a scene, source, or command name: read state first with get_status, list_scenes, or list_sources.'
+    personality: 'pro',
+    replyLength: 'short',
+    humor: 1,
+    proactive: false,
+    language: 'id',
+    systemPrompt: ''
   },
   stt: {
     enabled: false,
@@ -153,6 +154,12 @@ const DEFAULTS = {
     enabled: true,
     visible: true,
     expanded: false
+  },
+  automations: {
+    routines: [],
+    reminders: [],
+    savedMessages: [],
+    notes: ''
   }
 }
 

@@ -39,9 +39,9 @@ async function callModel(cfg, messages, signal) {
  * Run one user turn through the model, executing tools until it answers.
  * Returns { answer, steps: [{ tool, args, result }] }.
  */
-async function runCommand({ obs, context = {}, cfg, text, history = [], onStep }) {
+async function runCommand({ obs, context = {}, cfg, system, text, history = [], onStep }) {
   const messages = [
-    { role: 'system', content: cfg.systemPrompt },
+    { role: 'system', content: system || cfg.systemPrompt || '' },
     ...history.slice(-8).map((m) => ({ role: m.role, content: m.content })),
     { role: 'user', content: text }
   ]

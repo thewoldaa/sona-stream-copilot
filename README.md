@@ -53,6 +53,8 @@ Sona adalah implementasi ulang **dari nol**. Tidak ada satu byte pun dari aplika
 | Overlay designer | ✅ server lokal + browser source, 8 tipe elemen, SSE live |
 | Orb mengambang | ✅ jendela transparan always-on-top, geser, snap pojok, klik untuk bicara, bubble jawaban |
 | Notch | ✅ bar di tepi atas layar yang mengembang jadi panel 9 tile (chat, OBS, overlay, automations, go live, musik, bitrate, penonton, model) |
+| Sistem prompt | ✅ identitas + 3 kepribadian + panjang/humor/bahasa + aturan tool + 7 mode turn (reply, notification, job, result, chat read, chat reply, read+reply) |
+| Automations | ✅ routine (frasa → rangkaian tool), pengingat, pesan tersimpan, catatan |
 | Panduan awal | ✅ overlay 5 langkah saat pertama dibuka (deteksi OBS, model, suara, orb) |
 | Musik | ✅ antrean file lokal, yt-dlp opsional, output device via `setSinkId` |
 | Rahasia terenkripsi | ✅ `safeStorage` (DPAPI) untuk password OBS, token, API key |
@@ -110,7 +112,9 @@ electron/
   main.js      window induk + orb transparan, IPC, hotkey, protocol sona-media
   preload.js   contextBridge whitelist (tanpa ipcRenderer mentah)
   obs.js       wrapper obs-websocket: antrean serial, snapshot, undo, restore point
-  tools.js     68 tool: OBS + chat + overlay + musik + escape hatch v5
+  tools.js     68+5 tool: OBS + chat + overlay + musik + automations + escape hatch v5
+  prompts.js   perakit system prompt: identitas, kepribadian, aturan, 7 mode turn
+  automations.js routine, pengingat, pesan tersimpan, catatan
   agent.js     loop function calling (maks 8 langkah) + text completion
   chat.js      Twitch IRC, moderasi lokal, command, poll, giveaway, timer
   overlay.js   HTTP + SSE server untuk browser source OBS

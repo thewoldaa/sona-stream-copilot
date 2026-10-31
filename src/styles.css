@@ -1335,3 +1335,22 @@ html[data-win="notch"] #root {
   padding-top: 10px;
   border-top: 1px solid #191c24;
 }
+
+.prompt-preview {
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: #07080b;
+  padding: 10px 12px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.prompt-preview pre {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: #b9bdd0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

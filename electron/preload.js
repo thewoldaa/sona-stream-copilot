@@ -23,7 +23,9 @@ const EVENTS = new Set([
   'music:volume',
   'music:sink',
   'orb:state',
-  'orb:popup'
+  'orb:popup',
+  'notch:state',
+  'app:nav'
 ])
 
 contextBridge.exposeInMainWorld('sona', {
@@ -105,6 +107,13 @@ contextBridge.exposeInMainWorld('sona', {
     popup: (payload) => ipcRenderer.invoke('orb:popup', payload),
     voiceToggle: () => ipcRenderer.invoke('orb:voiceToggle'),
     hide: () => ipcRenderer.invoke('orb:hide')
+  },
+  notch: {
+    state: () => ipcRenderer.invoke('notch:state'),
+    toggle: (enabled) => ipcRenderer.invoke('notch:toggle', enabled),
+    expand: (expanded) => ipcRenderer.invoke('notch:expand', expanded),
+    visibility: (visible) => ipcRenderer.invoke('notch:visibility', visible),
+    action: (type, payload) => ipcRenderer.invoke('notch:action', { type, ...(payload ?? {}) })
   },
   on: (channel, handler) => {
     if (!EVENTS.has(channel)) return () => {}

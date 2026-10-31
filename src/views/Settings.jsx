@@ -289,6 +289,33 @@ export default function Settings({ sona }) {
 
       <section className="card">
         <div className="card-head">
+          <h2>Notch</h2>
+          <span className="muted tiny">bar di atas layar, mengembang jadi panel</span>
+        </div>
+        <div className="form">
+          <label className="check">
+            <input type="checkbox" checked={Boolean(local.notch?.enabled)} onChange={(e) => patch('notch', 'enabled', e.target.checked)} />
+            <span>Aktifkan notch</span>
+          </label>
+          <div className="row">
+            <button type="button" className="ghost" onClick={() => window.sona.notch.expand(true)}>
+              buka panel
+            </button>
+            <button type="button" className="ghost" onClick={() => window.sona.notch.expand(false)}>
+              tutup panel
+            </button>
+            <button type="button" className="ghost" onClick={() => window.sona.notch.visibility(false)}>
+              sembunyikan bar
+            </button>
+          </div>
+          <p className="muted tiny">
+            Bar menempel di tepi atas layar utama. Klik lingkaran untuk membuka panel; panel menutup sendiri setelah 15 detik.
+          </p>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-head">
           <h2>Orb & panduan awal</h2>
           <span className="muted tiny">widget mengambang di atas semua jendela</span>
         </div>

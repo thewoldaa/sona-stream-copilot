@@ -52,6 +52,7 @@ Sona adalah implementasi ulang **dari nol**. Tidak ada satu byte pun dari aplika
 | Timer pengumuman | ✅ interval per menit |
 | Overlay designer | ✅ server lokal + browser source, 8 tipe elemen, SSE live |
 | Orb mengambang | ✅ jendela transparan always-on-top, geser, snap pojok, klik untuk bicara, bubble jawaban |
+| Notch | ✅ bar di tepi atas layar yang mengembang jadi panel 9 tile (chat, OBS, overlay, automations, go live, musik, bitrate, penonton, model) |
 | Panduan awal | ✅ overlay 5 langkah saat pertama dibuka (deteksi OBS, model, suara, orb) |
 | Musik | ✅ antrean file lokal, yt-dlp opsional, output device via `setSinkId` |
 | Rahasia terenkripsi | ✅ `safeStorage` (DPAPI) untuk password OBS, token, API key |
@@ -113,13 +114,14 @@ electron/
   agent.js     loop function calling (maks 8 langkah) + text completion
   chat.js      Twitch IRC, moderasi lokal, command, poll, giveaway, timer
   overlay.js   HTTP + SSE server untuk browser source OBS
+  notch.js     jendela bar tepi atas (?win=notch), expand/collapse, snapshot agregat
   music.js     antrean; playback di renderer lewat protocol sona-media
   settings.js  JSON di userData, deep-merge, tulis atomik
   secrets.js   blob terenkripsi safeStorage
 src/
   App.jsx      shell, tab, mic, wake, onboarding, toast
   Orb.jsx      widget mengambang (?win=orb): drag, snap, state, popup
-  views/       Dashboard, Assistant, ObsPanel, ChatPanel, Designer, Music, Settings
+  Notch.jsx    bar tepi atas (?win=notch): panel 9 tile, aksi cepat  views/       Dashboard, Assistant, ObsPanel, ChatPanel, Designer, Music, Settings
   lib/         useSona, mic, wake (VAD), musicDeck
 ```
 

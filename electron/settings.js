@@ -148,6 +148,11 @@ const DEFAULTS = {
     x: null,
     y: null,
     popups: true
+  },
+  notch: {
+    enabled: true,
+    visible: true,
+    expanded: false
   }
 }
 

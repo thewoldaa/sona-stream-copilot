@@ -12,13 +12,31 @@ const { runCommand, complete } = require('./agent')
 const { ChatService } = require('./chat')
 const { OverlayServer } = require('./overlay')
 const { MusicService } = require('./music')
+const { Notch } = require('./notch')
 
 const DEV_URL = process.env.SONA_DEV_URL || ''
 let win = null
 
 function emit(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload)
+  if (
+    channel === 'obs:snapshot' ||
+    channel === 'obs:status' ||
+    channel === 'chat:message' ||
+    channel === 'chat:state' ||
+    channel === 'chat:poll' ||
+    channel === 'chat:giveaway' ||
+    channel === 'music:state'
+  ) {
+    try {
+      notchRef?.broadcast()
+    } catch {
+      /* notch is optional */
+    }
+  }
 }
+
+let notchRef = null
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'sona-media', privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true, bypassCSP: false } }
@@ -47,6 +65,18 @@ const music = new MusicService({
   saveMusic: (patch) => store.save({ music: { ...store.get().music, ...patch } }),
   emit
 })
+
+const notch = new Notch({
+  getSettings: () => store.get(),
+  save: (patch) => store.save({ notch: { ...store.get().notch, ...patch } }),
+  getObs: () => obs,
+  getChat: () => chat,
+  getMusic: () => music,
+  getOverlay: () => overlay,
+  getAi: () => store.get().ai
+})
+
+notchRef = notch
 
 /* ------------------------------- OBS autodetect ---------------------------- */
 
@@ -114,6 +144,19 @@ function createWindow() {
           fs.writeFileSync(`${process.env.SONA_SHOT}.orb.png`, orbImage.toPNG())
         } catch {
           /* orb capture is best effort */
+        }
+      }
+      const notchWindow = notch.window
+      if (notchWindow) {
+        try {
+          if (process.env.SONA_NOTCH_EXPAND) {
+            notch.setExpanded(true)
+            await new Promise((resolve) => setTimeout(resolve, 900))
+          }
+          const notchImage = await notchWindow.webContents.capturePage()
+          fs.writeFileSync(`${process.env.SONA_SHOT}.notch.png`, notchImage.toPNG())
+        } catch {
+          /* notch capture is best effort */
         }
       }
       app.quit()
@@ -250,6 +293,7 @@ app.whenReady().then(async () => {
 
   const cfg = store.get()
   if (cfg.orb.enabled) createOrb()
+  if (cfg.notch.enabled) notch.create()
   if (cfg.overlay.enabled) overlay.start(cfg.overlay.port).catch(() => {})
   if (cfg.obs.autoConnect && cfg.obs.url) {
     const password = secrets.get('obsPassword')
@@ -549,6 +593,91 @@ ipcMain.handle('orb:hide', () => {
   store.save({ orb: { ...store.get().orb, visible: false } })
   if (orbWin && !orbWin.isDestroyed()) orbWin.hide()
   return { ok: true }
+})
+
+/* ---------------------------------- notch -------------------------------- */
+
+ipcMain.handle('notch:state', () => ({
+  ...notch.snapshot(),
+  enabled: store.get().notch.enabled,
+  visible: store.get().notch.visible
+}))
+
+ipcMain.handle('notch:toggle', (_e, enabled) => {
+  const on = Boolean(enabled)
+  store.save({ notch: { ...store.get().notch, enabled: on } })
+  if (on) notch.create()
+  else notch.destroy()
+  return { ok: true, enabled: on }
+})
+
+ipcMain.handle('notch:expand', (_e, expanded) => notch.setExpanded(expanded !== false))
+
+ipcMain.handle('notch:visibility', (_e, visible) => {
+  notch.show(Boolean(visible))
+  return { ok: true, visible: Boolean(visible) }
+})
+
+ipcMain.handle('notch:action', async (_e, payload) => {
+  const type = String(payload?.type ?? '')
+  const goTab = (tab) => {
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+      win.webContents.send('app:nav', tab)
+    }
+    return { ok: true, tab }
+  }
+
+  switch (type) {
+    case 'main':
+      return goTab('dashboard')
+    case 'settings':
+      return goTab('settings')
+    case 'chat':
+      return goTab('chat')
+    case 'overlay':
+      return goTab('overlay')
+    case 'music':
+      return goTab('music')
+    case 'assistant':
+      return goTab('assistant')
+
+    case 'stream': {
+      if (!obs.connected) return { ok: false, error: 'obs_offline' }
+      const res = await obs.call(obs.snapshot.streaming ? 'StopStream' : 'StartStream')
+      obs.refreshSoon()
+      return res
+    }
+
+    case 'microphone': {
+      if (!obs.connected) return { ok: false, error: 'obs_offline' }
+      const mic = (obs.snapshot.audio ?? []).find((a) => /mic|microphone|aux/i.test(a.name)) ?? obs.snapshot.audio?.[0]
+      if (!mic) return { ok: false, error: 'no_audio_input' }
+      const res = await obs.call('SetInputMute', { inputName: mic.name, inputMuted: !mic.muted })
+      obs.refreshSoon()
+      return { ...res, input: mic.name, muted: !mic.muted }
+    }
+
+    case 'alert': {
+      overlay.fireAlert({ user: 'Penonton', kind: 'follow' })
+      return { ok: true }
+    }
+
+    case 'voice': {
+      emit('voice:hotkey')
+      return { ok: true }
+    }
+
+    case 'collapse':
+      return notch.setExpanded(false)
+
+    case 'hide':
+      notch.show(false)
+      return { ok: true }
+  }
+  return { ok: false, error: `unknown_action: ${type}` }
 })
 
 /* ---------------------------------- misc --------------------------------- */

@@ -188,6 +188,7 @@ class ObsManager {
       audio,
       streaming: Boolean(stream.data?.outputActive),
       streamSeconds: Math.floor((Number(stream.data?.outputDuration) || 0) / 1000),
+      streamBytes: Number(stream.data?.outputBytes) || null,
       recording: Boolean(record.data?.outputActive),
       recordingPaused: Boolean(record.data?.outputPaused),
       replayBuffer: Boolean(replay.data?.outputActive),

@@ -91,6 +91,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    const off = window.sona.on('app:nav', (next) => setTab(next))
+    return off
+  }, [])
+
+  useEffect(() => {
     const off = window.sona.on('voice:hotkey', () => {
       setTab('assistant')
       toggleMic()
@@ -184,6 +189,18 @@ export default function App() {
             </button>
             <button className="ghost" onClick={sona.refresh} type="button">
               refresh
+            </button>
+            <button
+              className="ghost"
+              type="button"
+              title="Tampilkan / sembunyikan notch"
+              onClick={async () => {
+                const state = await window.sona.notch.state()
+                const res = await window.sona.notch.toggle(!state.enabled)
+                sona.notify(res.enabled ? 'Notch ditampilkan.' : 'Notch disembunyikan.')
+              }}
+            >
+              notch
             </button>
             <button
               className="ghost"

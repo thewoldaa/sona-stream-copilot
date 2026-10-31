@@ -51,6 +51,8 @@ Sona adalah implementasi ulang **dari nol**. Tidak ada satu byte pun dari aplika
 | Poll & giveaway | ✅ vote `!1..!6`, `!join`, auto-pick, auto-close |
 | Timer pengumuman | ✅ interval per menit |
 | Overlay designer | ✅ server lokal + browser source, 8 tipe elemen, SSE live |
+| Orb mengambang | ✅ jendela transparan always-on-top, geser, snap pojok, klik untuk bicara, bubble jawaban |
+| Panduan awal | ✅ overlay 5 langkah saat pertama dibuka (deteksi OBS, model, suara, orb) |
 | Musik | ✅ antrean file lokal, yt-dlp opsional, output device via `setSinkId` |
 | Rahasia terenkripsi | ✅ `safeStorage` (DPAPI) untuk password OBS, token, API key |
 | Billing / akun / kredit | ❌ tidak ada — dan itu fiturnya |
@@ -104,7 +106,7 @@ Menghasilkan di `release/`:
 
 ```
 electron/
-  main.js      window, IPC, hotkey, protocol sona-media, permission media-only
+  main.js      window induk + orb transparan, IPC, hotkey, protocol sona-media
   preload.js   contextBridge whitelist (tanpa ipcRenderer mentah)
   obs.js       wrapper obs-websocket: antrean serial, snapshot, undo, restore point
   tools.js     68 tool: OBS + chat + overlay + musik + escape hatch v5
@@ -115,7 +117,8 @@ electron/
   settings.js  JSON di userData, deep-merge, tulis atomik
   secrets.js   blob terenkripsi safeStorage
 src/
-  App.jsx      shell, tab, mic, wake, toast
+  App.jsx      shell, tab, mic, wake, onboarding, toast
+  Orb.jsx      widget mengambang (?win=orb): drag, snap, state, popup
   views/       Dashboard, Assistant, ObsPanel, ChatPanel, Designer, Music, Settings
   lib/         useSona, mic, wake (VAD), musicDeck
 ```

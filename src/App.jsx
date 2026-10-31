@@ -9,6 +9,7 @@ import ChatPanel from './views/ChatPanel.jsx'
 import Designer from './views/Designer.jsx'
 import Music from './views/Music.jsx'
 import Settings from './views/Settings.jsx'
+import Onboarding from './views/Onboarding.jsx'
 import { MusicDeck } from './lib/musicDeck.jsx'
 
 const TABS = [
@@ -27,8 +28,19 @@ export default function App() {
   const [draft, setDraft] = useState('')
   const [recording, setRecording] = useState(false)
   const [wakeOn, setWakeOn] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const micRef = useRef(null)
   const wakeRef = useRef(null)
+
+  useEffect(() => {
+    if (!sona.settings) return
+    if (sona.settings.onboarding?.done !== true) setShowOnboarding(true)
+  }, [sona.settings?.onboarding?.done]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const next = recording ? 'listening' : sona.busy ? 'thinking' : 'idle'
+    window.sona?.orb?.setState(next)
+  }, [recording, sona.busy])
 
   useEffect(() => {
     if (!sona.settings) return
@@ -173,6 +185,18 @@ export default function App() {
             <button className="ghost" onClick={sona.refresh} type="button">
               refresh
             </button>
+            <button
+              className="ghost"
+              type="button"
+              title="Tampilkan / sembunyikan orb"
+              onClick={async () => {
+                const state = await window.sona.orb.state()
+                const res = await window.sona.orb.toggle(!state.enabled)
+                sona.notify(res.enabled ? 'Orb ditampilkan.' : 'Orb disembunyikan.')
+              }}
+            >
+              orb
+            </button>
           </div>
         </header>
 
@@ -197,6 +221,7 @@ export default function App() {
       </main>
 
       {sona.toast && <div className={`toast toast--${sona.toast.kind}`}>{sona.toast.text}</div>}
+      {showOnboarding && <Onboarding sona={sona} onDone={() => setShowOnboarding(false)} />}
       <MusicDeck />
     </div>
   )

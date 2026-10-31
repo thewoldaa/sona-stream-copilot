@@ -46,6 +46,8 @@ export function useSona() {
         utter.pitch = Number(voice.pitch) || 1
         const chosen = window.speechSynthesis.getVoices().find((v) => v.name === voice.voiceName)
         if (chosen) utter.voice = chosen
+        utter.onstart = () => window.sona?.orb?.setState('speaking')
+        utter.onend = () => window.sona?.orb?.setState('idle')
         window.speechSynthesis.speak(utter)
       } catch {
         /* speech is best-effort */
@@ -163,6 +165,7 @@ export function useSona() {
           const answer = res.answer || '(tidak ada jawaban)'
           setMessages((prev) => [...prev, { role: 'assistant', content: answer, steps: res.steps }])
           speak(answer)
+          window.sona?.orb?.popup({ text: answer.slice(0, 180), ms: 7000 })
         }
         refresh()
       } catch (err) {

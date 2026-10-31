@@ -135,6 +135,19 @@ const DEFAULTS = {
   ui: {
     accent: '#B892FF',
     reduceMotion: false
+  },
+  onboarding: {
+    done: false,
+    step: 0
+  },
+  orb: {
+    enabled: true,
+    visible: true,
+    corner: 'br',
+    size: 132,
+    x: null,
+    y: null,
+    popups: true
   }
 }
 

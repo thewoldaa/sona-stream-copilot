@@ -1,6 +1,6 @@
 'use strict'
 
-const { app, BrowserWindow, ipcMain, globalShortcut, session, shell, protocol, net, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, globalShortcut, session, shell, protocol, net, dialog, screen } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const { pathToFileURL } = require('node:url')
@@ -108,6 +108,14 @@ function createWindow() {
       await new Promise((resolve) => setTimeout(resolve, 1500))
       const image = await win.webContents.capturePage()
       fs.writeFileSync(process.env.SONA_SHOT, image.toPNG())
+      if (orbWin && !orbWin.isDestroyed()) {
+        try {
+          const orbImage = await orbWin.webContents.capturePage()
+          fs.writeFileSync(`${process.env.SONA_SHOT}.orb.png`, orbImage.toPNG())
+        } catch {
+          /* orb capture is best effort */
+        }
+      }
       app.quit()
     })
   }
@@ -130,8 +138,91 @@ function createWindow() {
   })
 }
 
-function registerHotkey() {
-  globalShortcut.unregisterAll()
+/* ---------------------------------- orb ----------------------------------- */
+
+let orbWin = null
+
+function orbPosition() {
+  const cfg = store.get().orb
+  const size = Number(cfg.size) || 132
+  const margin = 24
+  if (Number.isFinite(cfg.x) && Number.isFinite(cfg.y)) return { x: Math.round(cfg.x), y: Math.round(cfg.y) }
+  const { workArea } = screen.getPrimaryDisplay()
+  const corners = {
+    br: { x: workArea.x + workArea.width - size - margin, y: workArea.y + workArea.height - size - margin },
+    bl: { x: workArea.x + margin, y: workArea.y + workArea.height - size - margin },
+    tr: { x: workArea.x + workArea.width - size - margin, y: workArea.y + margin },
+    tl: { x: workArea.x + margin, y: workArea.y + margin }
+  }
+  return corners[cfg.corner] ?? corners.br
+}
+
+function createOrb() {
+  if (orbWin && !orbWin.isDestroyed()) return orbWin
+  const cfg = store.get().orb
+  const size = Number(cfg.size) || 132
+  const pos = orbPosition()
+
+  orbWin = new BrowserWindow({
+    width: size,
+    height: size + 44,
+    x: pos.x,
+    y: pos.y,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: true,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    show: false,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  })
+
+  orbWin.setAlwaysOnTop(true, 'screen-saver')
+  if (typeof orbWin.setVisibleOnAllWorkspaces === 'function') orbWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  if (DEV_URL) orbWin.loadURL(`${DEV_URL}?win=orb`)
+  else orbWin.loadFile(path.join(__dirname, '..', 'dist', 'index.html'), { query: { win: 'orb' } })
+
+  orbWin.once('ready-to-show', () => {
+    if (store.get().orb.visible) orbWin.showInactive()
+  })
+  let moveTimer = null
+  orbWin.on('moved', () => {
+    clearTimeout(moveTimer)
+    moveTimer = setTimeout(() => {
+      if (!orbWin || orbWin.isDestroyed()) return
+      const [x, y] = orbWin.getPosition()
+      store.save({ orb: { ...store.get().orb, x, y, corner: null } })
+    }, 450)
+  })
+  orbWin.on('closed', () => {
+    orbWin = null
+  })
+  return orbWin
+}
+
+function destroyOrb() {
+  if (orbWin && !orbWin.isDestroyed()) orbWin.destroy()
+  orbWin = null
+  return { ok: true }
+}
+
+function orbSend(channel, payload) {
+  if (orbWin && !orbWin.isDestroyed()) orbWin.webContents.send(channel, payload)
+}
+
+function registerHotkey() {  globalShortcut.unregisterAll()
   const hotkey = store.get().voice.hotkey
   if (!hotkey) return { ok: true, registered: false }
   try {
@@ -158,6 +249,7 @@ app.whenReady().then(async () => {
   registerHotkey()
 
   const cfg = store.get()
+  if (cfg.orb.enabled) createOrb()
   if (cfg.overlay.enabled) overlay.start(cfg.overlay.port).catch(() => {})
   if (cfg.obs.autoConnect && cfg.obs.url) {
     const password = secrets.get('obsPassword')
@@ -382,6 +474,82 @@ ipcMain.handle('music:clear', () => music.clear())
 ipcMain.handle('music:remove', (_e, id) => music.remove(id))
 ipcMain.handle('music:ended', () => music.next())
 ipcMain.handle('music:setPlaying', (_e, value) => music.setPlaying(value))
+
+/* -------------------------------- onboarding ---------------------------- */
+
+ipcMain.handle('onboarding:save', (_e, patch) => {
+  const next = store.save({ onboarding: { ...store.get().onboarding, ...(patch ?? {}) } })
+  return next.onboarding
+})
+
+/* ---------------------------------- orb ---------------------------------- */
+
+ipcMain.handle('orb:state', () => ({
+  enabled: store.get().orb.enabled,
+  visible: Boolean(orbWin && !orbWin.isDestroyed() && orbWin.isVisible()),
+  corner: store.get().orb.corner,
+  position: orbWin && !orbWin.isDestroyed() ? orbWin.getPosition() : null
+}))
+
+ipcMain.handle('orb:toggle', (_e, enabled) => {
+  const on = Boolean(enabled)
+  store.save({ orb: { ...store.get().orb, enabled: on } })
+  if (on) createOrb()
+  else destroyOrb()
+  return { ok: true, enabled: on }
+})
+
+ipcMain.handle('orb:visibility', (_e, visible) => {
+  const on = Boolean(visible)
+  store.save({ orb: { ...store.get().orb, visible: on } })
+  if (!orbWin || orbWin.isDestroyed()) {
+    if (on) createOrb()
+    return { ok: true, visible: on }
+  }
+  if (on) orbWin.showInactive()
+  else orbWin.hide()
+  return { ok: true, visible: on }
+})
+
+ipcMain.handle('orb:snap', (_e, corner) => {
+  if (!orbWin || orbWin.isDestroyed()) return { ok: false, error: 'orb_off' }
+  const size = Number(store.get().orb.size) || 132
+  const { workArea } = screen.getPrimaryDisplay()
+  const margin = 24
+  const map = {
+    br: { x: workArea.x + workArea.width - size - margin, y: workArea.y + workArea.height - size - margin },
+    bl: { x: workArea.x + margin, y: workArea.y + workArea.height - size - margin },
+    tr: { x: workArea.x + workArea.width - size - margin, y: workArea.y + margin },
+    tl: { x: workArea.x + margin, y: workArea.y + margin }
+  }
+  const target = map[corner] ?? map.br
+  orbWin.setPosition(Math.round(target.x), Math.round(target.y))
+  store.save({ orb: { ...store.get().orb, x: Math.round(target.x), y: Math.round(target.y), corner } })
+  return { ok: true, corner }
+})
+
+ipcMain.handle('orb:setState', (_e, state) => {
+  orbSend('orb:state', state)
+  if (win && !win.isDestroyed()) win.webContents.send('orb:state', state)
+  return { ok: true }
+})
+
+ipcMain.handle('orb:popup', (_e, payload) => {
+  if (!store.get().orb.popups) return { ok: false, error: 'popups_off' }
+  orbSend('orb:popup', payload)
+  return { ok: true }
+})
+
+ipcMain.handle('orb:voiceToggle', () => {
+  emit('voice:hotkey')
+  return { ok: true }
+})
+
+ipcMain.handle('orb:hide', () => {
+  store.save({ orb: { ...store.get().orb, visible: false } })
+  if (orbWin && !orbWin.isDestroyed()) orbWin.hide()
+  return { ok: true }
+})
 
 /* ---------------------------------- misc --------------------------------- */
 

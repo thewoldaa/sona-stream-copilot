@@ -1,8 +1,8 @@
 {
   "name": "sona-stream-copilot",
   "productName": "Sona",
-  "version": "1.1.0",
-  "description": "Sona — free, local-first AI copilot for streamers. OBS control, voice commands, zero vendor backend.",
+  "version": "1.2.0",
+  "description": "Sona ??? free, local-first AI copilot for streamers. OBS control, voice commands, zero vendor backend.",
   "author": "Sona Contributors",
   "license": "MIT",
   "private": true,

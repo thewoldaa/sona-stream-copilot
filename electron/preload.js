@@ -21,7 +21,9 @@ const EVENTS = new Set([
   'music:pause',
   'music:resume',
   'music:volume',
-  'music:sink'
+  'music:sink',
+  'orb:state',
+  'orb:popup'
 ])
 
 contextBridge.exposeInMainWorld('sona', {
@@ -90,6 +92,19 @@ contextBridge.exposeInMainWorld('sona', {
   app: {
     info: () => ipcRenderer.invoke('app:info'),
     openExternal: (url) => ipcRenderer.invoke('app:openExternal', url)
+  },
+  onboarding: {
+    save: (patch) => ipcRenderer.invoke('onboarding:save', patch)
+  },
+  orb: {
+    state: () => ipcRenderer.invoke('orb:state'),
+    toggle: (enabled) => ipcRenderer.invoke('orb:toggle', enabled),
+    visibility: (visible) => ipcRenderer.invoke('orb:visibility', visible),
+    snap: (corner) => ipcRenderer.invoke('orb:snap', corner),
+    setState: (state) => ipcRenderer.invoke('orb:setState', state),
+    popup: (payload) => ipcRenderer.invoke('orb:popup', payload),
+    voiceToggle: () => ipcRenderer.invoke('orb:voiceToggle'),
+    hide: () => ipcRenderer.invoke('orb:hide')
   },
   on: (channel, handler) => {
     if (!EVENTS.has(channel)) return () => {}

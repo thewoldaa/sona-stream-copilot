@@ -287,6 +287,51 @@ export default function Settings({ sona }) {
         </div>
       </section>
 
+      <section className="card">
+        <div className="card-head">
+          <h2>Orb & panduan awal</h2>
+          <span className="muted tiny">widget mengambang di atas semua jendela</span>
+        </div>
+        <div className="form">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={Boolean(local.orb?.enabled)}
+              onChange={(e) => patch('orb', 'enabled', e.target.checked)}
+            />
+            <span>Tampilkan orb</span>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={Boolean(local.orb?.popups)} onChange={(e) => patch('orb', 'popups', e.target.checked)} />
+            <span>Tampilkan jawaban Sona sebagai bubble di orb</span>
+          </label>
+          <div className="row">
+            <button type="button" className="ghost" onClick={() => window.sona.orb.snap('br')}>
+              pojok kanan bawah
+            </button>
+            <button type="button" className="ghost" onClick={() => window.sona.orb.snap('tl')}>
+              pojok kiri atas
+            </button>
+            <button type="button" className="ghost" onClick={() => window.sona.orb.visibility(false)}>
+              sembunyikan
+            </button>
+          </div>
+          <div className="divider" />
+          <div className="row">
+            <button
+              type="button"
+              className="ghost"
+              onClick={async () => {
+                await sona.saveSettings({ onboarding: { done: false } })
+                sona.notify('Panduan awal akan muncul lagi saat aplikasi dibuka ulang.')
+              }}
+            >
+              putar ulang panduan awal
+            </button>
+          </div>
+        </div>
+      </section>
+
       <div className="row row--end">
         <button type="button" className="primary" onClick={save}>
           simpan setelan
